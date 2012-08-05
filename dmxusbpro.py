@@ -704,13 +704,29 @@ class DMXUSBPro(object):
 		self.ser.write(out)
 		self.ser.flush()		# wait for all data to be sent
 		
+	def read_packet(self):
+		eol_char ='%c' % DMXUSBCodes['EOM']
+		packet = []
+		
+		while True:
+			c = self.ser.read(1)
+			if c:
+				packet.append(c)
+				if c == eol_char:
+					break
+			else:
+				break
+		
+		packet_str = "".join(packet)
+		return packet_str
+	
 	def receive(self):
 		"""Recieve a USBDMX*Packet from the box.
 		The label (i.e. type) of the received string is checked, and the appropriate USBDMX*Packet-type is returned.
 		May return 'None' if the serial read times-out or returns an empty string.
 		"""
 		try:
-			in_str = self.ser.readline(eol='%c' % DMXUSBCodes['EOM'])
+			in_str = self.read_packet()
 		except serial.SerialTimeoutException:
 			return None
 		
