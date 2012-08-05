@@ -1,0 +1,447 @@
+**************
+* OSCDMXCtrl *
+**************
+
+A Simple DMX-controller with OSC interface for the 
+Enttec DMX USB Pro box
+
+Stock, V2_Lab Rotterdam, Aug 2008
+
+=========
+Changelog
+=========
+
+version 0.1
+	initial version
+
+===========================
+Requirements & Dependencies
+===========================
+
+The main application is 'dmxctrl.py', and it requires that the files 'dmx512.py' and 'dmxusbpro.py' reside in the same directory as the 'dmxctrl.py' file
+
+To run correctly, you'll need Python 2.5 to be installed.
+
+Mac OS-X users sould verify which version of Python is executed by the symbolic link '/usr/bin/python'. Open a Terminal and simply type /usr/bin/python. (Close the python-shell again with Ctrl-D). If you get
+
+Python 2.5.1 (r251:54863, Jan 17 2008, 19:35:17) 
+[GCC 4.0.1 (Apple Inc. build 5465)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 
+
+all is fine.
+However, if you still get
+
+Python 2.3.5 (#1, Oct  5 2005, 11:07:27) 
+[GCC 3.3 20030304 (Apple Computer, Inc. build 1809)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+
+or some other version of Python 2.3, the symlink in /usr/bin needs to be fixed. In that case, check if '/System/Library/Frameworks/Python.framework/Versions/2.5' or '/Library/Frameworks/Python.framework/Versions/2.5' exists.
+If it doesn't, download & install Python 2.5 for Mac OS-X from http://www.python.org/download
+Then, in a Terminal run:
+'cd /usr/bin'
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/python2.5 python2.5'
+('sudo' will ask for your password)
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/python2.5 python'
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/pythonw2.5 pythonw2.5'
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/pythonw2.5 pythonw'
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/pydoc2.5 pydoc2.5'
+'sudo ln -sf /System/Library/Frameworks/Python.framework/Versions/2.5/bin/pydoc2.5 pydoc'
+In all of these, you should of course omit the '/System' part of the path if your Python 2.5 happens to be installed in '/Library/Frameworks/Python.framework/Versions/2.5' 
+
+Additionally, you'll need the following python packages to be installed:
+	
+pyserial (v2.4)
+http://pypi.python.org/pypi/pyserial/2.4
+Download the archive, unpack it, 'cd' to the directory where it was unpacked and run
+'sudo python setup.py install'
+
+pyOSC (v0.3.5)
+http://pypi.python.org/pypi/pyOSC
+Download the archive, unpack it, 'cd' to the directory where it was unpacked and run
+'sudo python setup.py install'
+
+numpy (v1.1.1)
+http://sourceforge.net/project/showfiles.php?group_id=1369&package_id=175103
+
+
+========================
+Serial-Port Device-Names
+========================
+
+The DMX USB Pro box is a USB-device which manifests itself as a (virtual) serial port on the host PC (or Mac).
+Before you can start the OSCDMXCtrl application, you'll need to determine the device-name of this serial-port.
+
+- Linux:
+No extra drivers are necessary, the FTDI USB-to-serial chip is supported by current 2.6 kernels.
+The serial-port becomes /dev/ttyUSB0 (or /dev/ttyUSB<n> if you already have (n-1) usb-serial devices attached)
+
+Start the application with
+'python dmxctrl.py -s /dev/ttyUSB<n>'	(where <n> is the actual ttyUSB-number you found)
+or
+'./dmxctrl.py -s /dev/ttyUSB<n>'
+Note: '/dev/ttyUSB0' is the default serial-port name. If you have no other USB-serial devices, you need not
+specify the '-s <PORT>' option at all
+
+- Mac OS-X:
+Download the driver from http://www.ftdichip.com/Drivers/VCP.htm
+The serial-port becomes /dev/tty.usbserial-<some string>
+To find out the exact name, install the driver (this results in a windows-like 'restart your computer' message!)
+then, after rebooting, plug-in the DMX USB Pro box, open a Terminal and do 'ls /dev/tty.*'
+
+Start the application with
+'python dmxctrl.py -s /dev/tty.usbserial-<portstring>'	(where <portstring> is the actual string you found)	
+or
+'./dmxctrl.py -s /dev/tty.usbserial-<portstring>'
+Hint: In the Terminal, you can use the Tab-key for filename completion. Type 
+'python dmxctrl.py -s /dev/tty.usb<Tab>' and see what happens...
+Hint: Or use shell 'globbing' if you only have the one USB-serial device attached:
+'python dmxctrl.py -s /dev/tty.usbserial-*'
+
+- Windows:
+Download driver from http://www.ftdichip.com/Drivers/VCP.htm
+Install the driver and restart.
+The serial-port becomes 'COMn' (of course).
+Use the 'Device manager', chapter 'Ports (COM & LPT)' to find out which COM-port is the 'USB Serial Port'
+
+Start the application with
+'python dmxctrl.py -s COM<n>	(where <n> is the actual COM-port number you found)
+
+
+====================
+Command-Line Options
+====================
+
+The dmxctrl.py application recognizes a few other command-line options.
+Here's the built-in 'Usage' text
+
+Usage: dmxctrl.py [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -s DEV, --serport=DEV
+                        connect to DMX USB Pro box on DEV [default = /dev/ttyUSB0]
+  -l URL, --listen=URL
+                        listen for OSC-messages on URL [default = :6788]
+  -f FILE, --scenefile=FILE
+                        load scene-memory from FILE [default = scenes.xml]
+
+With the '-s' or '--serport' option you specify the serial-port device-name (as outlined above)
+With the '-f' or '--scenefile' option you can specify an alternate 'scene-memory' storage file
+With the '-l' or '--listenurl' option you can determine the IP-address, port and possibly address-prefix the OSC-server will listen on.
+
+The <url> following the '-l' or '--listenurl' option should be of the form:
+'[osc://][<host>][:<port>][<prefix>]', where any or all components can be omitted.
+
+The <host> part should an IP-address or host-name of the local machine.
+The <port> part specifies the UDP-port for incoming OSC-messages.
+The <prefix> part is an OSC address-string
+If <host> is not specified, the IP-address '0.0.0.0' is used (meaning ANY IP-address of the local machine).
+If <port> is not specified, the default UDP-port '6788' is used
+If <prefix> is specified, <prefix> is prepended to the OSC-address of all message-handlers the OSC-server has registered.
+
+The default 'listenurl' of ':6788' means: 'listen on port 6788, on any interface, with no OSC address-prefix'
+
+
+=================
+Channels & Scenes
+=================
+
+The DMX-Controller application works with the concepts of 'channels' and 'scenes'.
+A 'channel' is one DMX 'slot', which controls one channel on a dimmer-pack, or one parameter of an 'intelligent light' device.
+The DMX Universe can consist of at most 512 slots, numbered from 1 to 512 (so, NOT from 0 to 511!).
+Accordingly, the DMX-Controller has channels numbered from 1 to 512.
+Each channel can be given a value between 0 and 255 inclusive. the value corresponds to the controlled dimmer's intensity level, or the controlled parameter-value on the 'intelligent light' device.
+
+Once all the relevant channels are set to your liking, the 'ensemble' of current channel-settings can be stored as a 'scene'.
+The scenes in scene-memory are numbered, starting at 0, and, in principle, an unlimited number of scenes can be stored.
+In practice, however, the Python-interpreter (or the whole OS) will run out of memory eventually, but storing thousands of scenes should not be a problem.
+
+Once stored, scenes can be recalled, which immediately sets each channel to the value it had when the scene was originally stored.
+It is also possible to 'fade' all channel-values from their current values to the values stored in a given scene over a given period of time
+
+Note that it is also possible to 'fade' a single channel from its current value to any other value, over a given period of time. This leaves all other channels unchanged
+
+A stored scene can be 'cleared', which deletes the given scene from memory but leaves all other scenes untouched
+(i.e. deleting one scene does NOT change the numbering of stored scenes with higher numbers!)
+
+But a stored scene can also simply be 'overwritten' by storing a new scene under the same scene-number.
+
+
+==============================
+OpenSoundControl Communication
+==============================
+
+OpenSoundControl is an open network-protocol for sending various kinds of data in (usually small) packets over the IP-network.
+see: http://opensoundcontrol.org/introduction-osc
+
+The OSCDMX-Controller uses V2_Lab's OSC-implementation for Python, 
+pyOSC v0.3.5, see: http://trac.v2.nl/wiki/pyOSC
+
+In brief, you need an OSC-client to send OSC-messages, and an OSC-server to receive them.
+In most cases, it is practical for an OSC-server to also have an OSC-client, so that it can send replies back to the remote clients it receives OSC-messages from. The remote clients, in turn, should have an OSC-server as well, so that they can actually receive the replies from the first server.
+As such, the distinction 'client' / 'server' becomes a bit blurred. Both sides of the conversation tend to incorporate both functionalities. In the following descriptions, i'll refer to the machine running the OSCDMXCtrl application, or even to the application itself, as the 'local server' or 'server', and to machines (or applications) that send OSC-messages to our local server as 'remote clients' or simply 'clients'. It is assumed to be understood that the server can also send OSC-messages, and that the clients should be able to receive these messages. 
+Note, however, that the server will never send OSC-messages of its own accord, but only in reply to messages received from clients. The clients always initiate a 'conversation' with the server.
+
+OSC-messages are specially-formatted data-packets sent over the network as UDP-datagrams. UDP is a 'connectionless' protocol, which means that an OSC-client can send a message at any time, to any UDP-port at any IP-address. If there is no OSC-server listening on that port at that address, the message will just get 'lost'. Even if there is an OSC-server there to receive the message, the OSC-protocol does not require the server to send some sort of 'acknowledge' message back, so normally, a client cannot know whether its message has been received or not.
+Of course it is possible to have the server send any sort of reply back to the client, but this is not required by the OSC protocol. Also note that such a reply requires the 'server' to act as a client, and for the 'client' to act as a server, as explained earlier.
+
+On the network level, as mentioned above, OSC-messages are sent to a specific IP-address & port combination. In addition, on the OSC-protocol level, OSC-messages have an OSC-address, which should not be confused with an IP- or network-address. One OSC-server at a given IP-address and listening on a given port could handle messages with a great number of different OSC-addresses. Whenever an OSC-server can receive and do something useful with the contents of messages addressed to a specific OSC-address, we say that the OSC-server can 'handle' messages to that OSC-address. In fact, the bits of software that get executed in response to an incoming OSC-message, and which do 'something useful' with the message contents, are called 'message-handler functions'
+
+In order to prepare an OSC-server to receive messages for a certain OSC-address, we have to define a message-handler function for the messages we will be expecting on that address, and then associate the OSC-address with the message-handler function. This last step is called 'registering a message-handler (for an address)'
+
+The OSC-addresses a server has registered from a hierarchical tree, just like directories on a hard-disk or URLs on a webserver, with the levels of the hierarchy separated by the slash '/' character. Valid OSC-addresses, for example, are:
+'/'
+'/info'
+'/dmx/channel'
+
+The actual contents of an OSC-message, the 'payload' as it were, can be any number of items, with the items being strings of characters, integers, floating-point numbers, or even 'blobs', which are blocks of arbitrary data, encoded as bytes.
+A special type of OSC-message is the OSC-bundle, which is a collection of OSC-messages. An OSC-bundle does not have an OSC-address of its own, instead the OSC-addresses of its constituent OSC-messages are used. OSC-bundles do have a 'timestamp' field, which allows the sender of a bundle (client) to instruct the receiver (server) to 'hold' the contents of a bundle, and only process the bundle's contents at the specified time (in the future!).  And yes, OSC-bundles may contain other OSC-bundles among their contents.
+
+
+===================
+Client Subscription
+===================
+
+The OSC-client implementation used in the OSCDMX-controller is the 'OSCMultiClient' (see http://trac.v2.nl/wiki/pyOSC#Classes ) which supports 'multiple unicasting' of OSC-messages. This means that a given OSC-message can be sent to multiple servers, each with their own IP-address. This is different from sending OSC-messages to a specific multicast or broadcast IP-address (which is also supported, of course). If you want to have multiple clients controlling, and receiving replies from, one OSCDMX-Controller, it's difficult to say which approach, multiple-unicast, multicast or broadcast, is 'best'. This depends mostly on your network-topology. multicasting is not supported by all routers, and broadcasting generally only works within your local subnet, but both of these methods produce less network-traffic than multiple-unicasting.
+
+To allow for dynamic configuration of which clients will receive reply-messages from the OSCDMX-Controller, the OSC-server implementation supports client subscription. By sending messages to the server's '/subscribe' and '/unsubscribe' OSC-addresses, clients can (un)subscribe themselves (or any other client) to receive reply-messages from the server. Note that any client can always send messages TO the server, whether it is subscribed or not.
+
+If a client wants to receive reply-messages back from the server on port 6789, for instance, it should send the message '/subscribe 6789' to the OSCDMX-Controller. If the client no longer wishes to receive reply-messages from the server, it should send '/unsubscribe 6789', or simply '/unsubscribe' (without arguments)
+
+
+============
+OSC-messages
+============
+
+Next follows a listing of the OSC-messages handled (i.e. understood) by the OSCDMX-Controller and the reply-messages it sends back to the client (if any).
+
+Here, the OSC-messages are written inside single quotes, starting with the OSC-address and followed by the space-separated data-items (if any).
+The vertical bar character '|' means 'or', and any part of an OSC-message in square brackets '[]' is optional
+
+Note that, if a server-prefix is given as part of the 'listenurl' argument (see the '-l' command-line option), this prefix is prepended to all OSC-addresses of message-handlers. So '/info' becomes '/<prefix>/info', etc.
+
+Note that a client needs to subscribe itself first, or it will nor receive any replies from the OSCDMX-Controller at all.
+
+
+* Informational Messages
+
+'/info info' or '/info help'		Request OSC-server information
+The sever replies with an OSC-bundle containing these OSC-messages:
+	'/serverinfo server ThreadingOSCServer v0.3.5b-5294 listening on osc://localhost:6788'
+	'/serverinfo info_command ls | list : list OSC address-space'
+	'/serverinfo info_command clients | targets : list subscribed clients'
+	
+In addition to 'help' and 'info', the OSC-server's '/info' handler also recognizes 'ls' or 'list' and 'clients' or 'targets' as valid command-words.
+
+'/info list' or '/info ls'		List all OSC-address handlers the server has currently registered.
+The reply is an OSC-bundle containing OSC-messages listing all registered OSC-addresses:
+	'/serverinfo address /dmx/scene'		DMX scene-control messages
+	'/serverinfo address /info'				Server-info requests
+	'/serverinfo address /dmx/channel'		DMX channel-control messages
+	'/serverinfo address /unsubscribe'		Client un-subscription requests
+	'/serverinfo address /print'			For text-messages to be printed in the OSCDMXCtrl's text-console
+	'/serverinfo address /subscribe'		Client subscription requests
+	'/serverinfo address /error'			For error-messages to be printed in the OSCDMXCtrl's text-console
+	'/serverinfo address default'			For any message with an OSC-address other than those listed here
+	
+Note that 'default' is not a valid OSC-address, as it lacks the initial slash '/'. The 'default' handler handles any messages that aren't handled by any of the other messages. For example
+'/foo bar'		(not an understood OSC-message)
+results in the text "OSCServer: No callback registered to handle OSC-address '/foo'" being printed in the OSCDMXCtrl's text-console, as well as an OSC-message in reply to the OSC-address '/error', on all subscribed clients:
+	'/error No callback registered to handle OSC-address '/foo''
+	
+Sending an unknown 'command-word' to a valid OSC-address also results in an error-message being printed and returned as an OSC-message to '/error'
+'/info bar'		(an unknown command-word)
+results in "OSCServer: unrecognized command 'bar' in /info request from osc://stomach.network.v2.nl:6789. Try 'help'" being printed in the OSCDMXCtrl's text-console, as well as the OSC-message:
+	'/error unrecognized command 'bar' in /info request from osc://stomach.network.v2.nl:6789. Try 'help''
+	
+'/info clients' or '/info targets'	Request a list of all subscribed clients (a.k.a. targets)
+The reply is an OSC-bundle containing an OSC-message for each subscribed client:
+	'/serverinfo target osc://stomach.network.v2.nl:6789'
+	
+
+* /print and /error Messages
+
+Sending any OSC-message to the '/print' or '/error' address results in a printout in the OSCDMXCtrl's text-console
+'/print hello'
+results in "OSCServer: OSCMessage '/print' from stomach.network.v2.nl:6789: ['hello']" being printed. 
+No reply-message is returned.
+
+'/error hello'
+results in "OSCServer: OSCMessage '/error' from stomach.network.v2.nl:6789: ['hello']" being printed. 
+No reply-message is returned.
+
+
+* Subscription Messages
+
+'/subscribe help' or '/subscribe info' or '/unsubscribe help' or '/unsubscribe info'
+Results in an OSC-bundle being returned, with these OSC-messages:
+	'/serverinfo server ThreadingOSCServer v0.3.5b-5294 listening on osc://localhost:6788'
+	'/serverinfo subscribe_command [subscribe | listen | sendto | target] <url> [<filter> ...] : subscribe to messages, set filters'
+	'/serverinfo subscribe_command [unsubscribe | silence | nosend | deltarget] <url> : unsubscribe from messages'
+	'/serverinfo subscribe_command ls | list : list subscribed targets'
+
+The '/subscribe' handler understands the optional command-words 'subscribe', 'listen', 'sendto' and 'target'.
+The '/unsubscribe' handler understands the optional command-words 'unsubscribe', 'silence', 'nosend' and 'deltarget'.
+Both handlers also understand the 'list' or 'ls' command-word, which returns the same subscribed client listing as '/info clients | targets' does (see 'Informational Messages' above)
+		
+The <url> given to the subscribe/unsubscribe handler should be of the form:
+'[osc://][<host>][:<port>][<prefix>]', where any or all components can be omitted, i.e. an empty 'url' is allowed.
+ 
+If <host> is not specified, the IP-address of the message's source is used.
+If <port> is not specified, the <host> is first looked up in the list of subscribed hosts, and if found, the associated port is used.
+If <port> is not specified and <host> is not yet subscribed, the message's source-port is used.
+If <prefix> is specified on subscription, <prefix> is prepended to the OSC-address of all messages sent to the subscribed host.
+If <prefix> is specified on unsubscription, the subscribed host is only unsubscribed if the host, port and prefix all match the subscription.
+If <prefix> is not specified on unsubscription, the subscribed host is unsubscribed if the host and port match the subscription.
+
+So, an empty '/subscribe' message (with no arguments) is allowed, however, this subscribes the originating host, which is fine, and the originating port, which is probably not what you want, because the originating port is usually a randomly chosen port with a high number, and the client-implementation does not normally know what port it is sending OSC-messages from. There are exceptions, of course, and it may be possible to force the networking-stack to use an outgoing port which is known a-priori.
+Generally, though, you will want to specify the port-number on which you would like to receive the messages you are subscribing to, in which case sending
+'/subscribe <my port>' is enough. The subscription-handler interprets this as '/subscribe <my IP-address>:<my port>'
+
+A client could also subscribe an entirely different server, or possibly a multicast- or broadcast-address, by sending
+'/subscribe <hostname>:<port>' or '/subscribe <IP-address>:<port>'
+
+In addition, it is possible for clients to subscribe (themselves or others) to specific OSC-messages only. The OSCMultiClient supports the filtering of messages based on the messages' OSC-addresses. Filters are given as OSC-addresses (which may include '*', '?', '{,}' and '[]' wildcards) prefixed by a '+' (send matching messages) or  a '-' (don't send matching messages). The wildcard '*', '+*' or '+/*' means 'send all' or 'filter none',  and '-*' or '-/*' means 'send none' or 'filter all' (which is not the same as unsubscribing!)
+For example '/subscribe 6789 +/dmxinfo' subscribes 'myself' on port 6789 only to OSC-messages with the '/dmxinfo' address. This client will no longer get any '/serverinfo' or '/error' messages.
+Alternatively '/subscribe 6789 +/* -/serverinfo' subscribes 'myself' on port 6789 to all OSC-messages except those with the '/serverinfo' address.
+To un-set any filters (i.e. receive all messages again) send a '/subscribe [<port>] *' message (alternate filter-strings '+*' or '+/*' also clear all filters)
+Multiple filter-strings can be sent in one '/subscribe' message, and/or multiple '/subscribe' messages specifying different filters can be sent.
+A filter-string of '*', '+*', '+/*', '-*' or '-/*' removes all previously defined filters, and when only '+<address>' filters are defined, a leading '-/*' is implied (i.e. 'filter all messages except the addresses specified with a '+' in front')
+
+The server responds to a '/subscribe' request with an OSC-message detailing the new (or changed) 'target' description:
+	'/serverinfo target osc://stomach.network.v2.nl:6789 -/* +/dmxinfo'
+
+For obvious reasons, the server does not reply to an {{{/unsubscribe}}} request.
+
+
+* DMX Control Messages
+
+'/dmx/channel help' or '/dmx/channel info'
+returns an OSC-bundle with these OSC-messages:
+	'/serverinfo server ThreadingOSCServer v0.3.5b-5294 listening on osc://localhost:6788
+	'/serverinfo channel_command [get] <ch> : return a channel's current value'
+	'/serverinfo channel_command get <from_ch> <to_ch> : return range of channels' current value'
+	'/serverinfo channel_command get : return all channels' current value'
+	'/serverinfo channel_command [set] <ch> <val> : set a channel to value'
+	'/serverinfo channel_command [set] <ch> <val> <time> : fade a channel to value'
+	
+The '/dmx/channel' handler recognizes the command-words 'get', which may be omitted only if there is a single integer in the message, and 'set' which is always optional
+
+'/dmx/channel get'				Request all channels' current value
+returns an OSC-bundle with up to 512 OSC-messages of the form:
+	'/dmxinfo channel 1 <val>'
+	...
+	'/dmxinfo channel <n> <val>'
+Where <n> is the last channel-number (between 1 and 512 inclusive), and <val> represents that channel's current setting; an integer from 0 to 255 (inclusive).
+
+'/dmx/channel <ch>' or '/dmx/channel get <ch>'	Request one channel's current value
+returns an OSC-bundle with only one OSC-message:
+	'/dmxinfo channel <ch> <val>'
+Where <ch> is a channel-number between 1 and 512 (inclusive), and <val> represents that channel's current setting; an integer from 0 to 255 (inclusive).
+
+'/dmx/channel get <from_ch> <to_ch>'		Request a range of channels' current value
+returns an OSC-bundle with up to 512 OSC-messages of the form:
+	'/dmxinfo channel <from_ch> <val>'
+	...
+	'/dmxinfo channel <to_ch> <val>'
+Where <from_ch> & <to_ch> are channel-numbers between 1 and 512 (inclusive), and <val> represents that channel's current setting; an integer from 0 to 255 (inclusive).
+All channels numbered between <from_ch> and <to_ch> (inclusive) are returned
+
+'/dmx/channel <ch> <val>' or '/dmx/channel set <ch> <val>'			Set the given DMX-channel to the given value
+Where <ch> is a channel-number between 1 and 512 (inclusive), and <val> represents that channel's new setting; an integer from 0 to 255 (inclusive).
+No reply-message is returned.
+
+'/dmx/channel <ch> <val> <time>' or '/dmx/channel set <ch> <val> <time>'	Fade the given DMX-channel from its current value to the given value over the given period of time.
+Where <ch> is a channel-number between 1 and 512 (inclusive), <val> represents that channel's new setting; an integer from 0 to 255 (inclusive), and <time> defines the fade-interval in seconds. <time> can be a floating-point number, so fade times of 0.33 sec or 12.5 sec are possible. 
+At the end of the fade, the server returns one OSC-message:
+	'/dmxinfo channel fade done'
+	
+'/dmx/scene help' or '/dmx/scene info'
+returns an OSC-bundle with these OSC-messages:
+	'/serverinfo server ThreadingOSCServer v0.3.5b-5294 listening on osc://localhost:6788'
+	'/serverinfo scene_command ls | list : list scenes in scene-memory'
+	'/serverinfo scene_command <sc> : recall scene'
+	'/serverinfo scene_command <sc> <time> : fade to scene'
+	'/serverinfo scene_command store <sc> : store current scene'
+	'/serverinfo scene_command get <sc> <ch> : return a channel's value from scene'
+	'/serverinfo scene_command get <sc> <from_ch> <to_ch> : return a range of channels' values from scene'
+	'/serverinfo scene_command get <sc> : return all channels' values from scene'
+	'/serverinfo scene_command load [<file>] : load scenes from file'
+	'/serverinfo scene_command save [<file>] : save scenes to file'
+
+The '/dmx/scene' handler recognizes the command-words 'ls' or 'list', 'store', 'get', 'load' and 'save', none of which are optional.
+
+'/dmx/scene list' or '/dmx/scene ls'	Request a listing of scenes in the current scene-memory
+Results in an OSC-bundle with messages of the form:
+	'/dmxinfo scene <sc>'
+	...
+	'/dmxinfo scene <sc>'
+Where <sc> can be any scene-number. Scene numbers start at '0' and have no upper limit. The scenes in scene-memory need not be consecutively numbered (i.e. scene 2, 4 and 6 can exist without scenes 3 and 5)
+
+'/dmx/scene <sc>'			Recall a stored scene
+Where <sc> can be any scene-number.
+No reply is returned, except when the requested scene does not exist or is empty:
+	'/error Invalid scene-number in OSC /dmx/scene command: Invalid scene number '47''
+The error-message is also printed in the OSCDMXCtrl's text-console: "OSCServer: Invalid scene-number in OSC /dmx/scene command: Invalid scene number '47'"
+
+'/dmx/scene <sc> <time>'		Fade from the current state to a stored scene over the given period of time
+An error-message is printed and returned if the requested scene does not exist or is empty.
+At the end of the fade, the server returns one OSC-message:
+	'/dmxinfo scene fade done'
+
+'/dmx/scene store <sc>'			Store current channel-settings as a scene in scene-memory
+Where <sc> can be any scene-number.
+No reply is returned.
+
+The commands
+'/dmx/scene get <sc> <ch>'		Request one channel's value from the given scene
+'/dmx/scene get <sc> <from_ch> <to_ch>'	Request a range of channels' values from the given scene
+'/dmx/scene get <sc>' 			Request all channels' values from the given scene
+work exactly like the corresponding '/dmx/channel get ...' commands described above, except that the channel-values returned don't represent the current output values but instead are the values as stored in the given scene <sc>.
+An error-message is printed and returned if the requested scene does not exist or is empty.
+
+'/dmx/scene load'		Load (or reload) the entire scene-memory from disk, from the default scene-file (see the '-f' command-line option)
+An OSC-bundle with a listing of the scenes in the loaded file is returned, exactly like for the '/dmx/scene list' command above.
+
+'/dmx/scene load <filename>'	Load (or reload) the entire scene-memory from disk, from the given scene-file
+An OSC-bundle with a listing of the scenes in the loaded file is returned, exactly like for the '/dmx/scene list' command above.
+
+'/dmx/scene save'		Save the current scene-memory to disk, as the default scene-file (see the '-f' command-line option)
+A single OSC-message is returned:
+	'/serverinfo saved scenes to '<default scenefile>''
+Where <default scenefile> is 'scenes.xml', unless it was changed with the '-f' option or an earlier '/dmx/scene save <filename>' command
+
+'/dmx/scene save <filename>'	Save the current scene-memory to disk, as the given scene-file
+A single OSC-message is returned:
+	'/serverinfo saved scenes to '<filename>''
+Note that this command changes the default scenefile to <filename>, and subsequent '/dmx/scene load' or '/dmx/scene save' commands will act on <filename>
+
+
+=============
+Max5 Patchers
+=============
+
+Included in the source-tree is a directory with Max5 files. Max5 is a graphical, object-oriented & event-driven real-time programming-environment. Max5 exists for Mac OS-X and Windows, but not for Linux, alas.
+
+With Max, it is possible to quickly develop simple or complex data-processing applications. Max also has a powerful set of customizable user-interface objects for building GUIs. Another nice feature is the ability to switch between 'Patching Mode', where all objects & connections can be seen & edited, and 'Presentation Mode', where a selected subset of the objects can be shown, even in a different place and with different visual properties than in Patching Mode.
+
+There are 4 files in the 'Max5' subdirectory:
+
+OSCTester.maxpat
+    A simple patcher to test the OSC-communication with the OSCDMX-Controller.
+    With this patcher, you can send most of the OSC-messages that the OSCDMX-Controller understands, and it is easy to add more. 
+
+DMX6ch.maxpat
+    A simple 6-channel 'Control Desk' with 6 faders and 6 'Flash Buttons'
+    With this you can control 6 channels, store & recall scenes, fade to scenes, load & save the scene-memory and preview a scene.
+    This patcher is easily extendable to more channels. 
+
+DMXFader.maxpat
+    A single-channel fader + flash-button 'module'.
+    This file is used (6 times) in the DMX6ch.maxpat 
+
+SceneCtrl.maxpat
+    The Scene-control 'module' used in the DMX6ch.maxpat
+
